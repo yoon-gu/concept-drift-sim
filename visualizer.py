@@ -67,25 +67,50 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
             row=1, col=1
         )
 
-    # === 두 번째 row: Drift Classification ===
+    # === 두 번째 row: Drift Classification (using Frouros) ===
+    from frouros.detectors.data_drift import KSTest
+    from scipy import stats
+
     window_size = 20
     n_windows = len(X) // window_size
     window_centers = []
     drift_detected = []
 
+    # 첫 번째 window를 reference로 사용
+    reference_window = y[:window_size]
+
     for i in range(n_windows):
         start_idx = i * window_size
         end_idx = (i + 1) * window_size
         window_center = (start_idx + end_idx) / 2
+        window_data = y[start_idx:end_idx]
 
-        # 이 window에 drift point가 포함되어 있는지 확인
-        has_drift = any(start_idx <= dp < end_idx for dp in drift_points)
+        # Frouros KSTest를 사용하여 drift 감지
+        if i == 0:
+            # 첫 번째 window는 reference이므로 drift 없음
+            has_drift = False
+        else:
+            try:
+                # Kolmogorov-Smirnov test 수행
+                detector = KSTest()
+                detector.fit(X=reference_window.reshape(-1, 1))
+                result = detector.compare(X=window_data.reshape(-1, 1))
+
+                # p-value가 0.05보다 작으면 drift 감지
+                has_drift = result.p_value < 0.05
+
+                # drift가 감지되면 reference window 업데이트
+                if not has_drift:
+                    reference_window = window_data
+            except:
+                # 에러 발생 시 이전 방식 사용
+                has_drift = any(start_idx <= dp < end_idx for dp in drift_points)
 
         window_centers.append(window_center)
         drift_detected.append(1 if has_drift else 0)
 
-    # Drift detection bar graph
-    bar_colors = ['rgba(255, 80, 80, 0.7)' if d == 1 else 'rgba(100, 200, 100, 0.7)'
+    # Drift detection bar graph - 주황색(drift) / 초록색(no drift)
+    bar_colors = ['rgba(255, 140, 0, 0.7)' if d == 1 else 'rgba(100, 200, 100, 0.7)'
                   for d in drift_detected]
 
     fig.add_trace(go.Bar(
