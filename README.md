@@ -1,6 +1,20 @@
+---
+title: Concept Drift Simulator
+emoji: 📊
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+sdk_version: 5.9.1
+app_file: app.py
+pinned: false
+license: mit
+---
+
 # Concept Drift Simulator
 
 컨셉 드리프트(Concept Drift)의 4가지 주요 유형을 시뮬레이션하고 시각화하는 인터랙티브 웹 애플리케이션입니다.
+
+**🚀 Live Demo:** [https://huggingface.co/spaces/yoon-gu/concept-drift-simulator](https://huggingface.co/spaces/yoon-gu/concept-drift-simulator)
 
 ## 주요 기능
 
@@ -49,7 +63,7 @@ concept-drift/
 
 ## Hugging Face Spaces
 
-배포된 앱: (배포 후 링크 추가)
+배포된 앱: https://huggingface.co/spaces/yoon-gu/concept-drift-simulator
 
 ## 라이선스
 
