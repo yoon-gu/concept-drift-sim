@@ -7,21 +7,47 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
 
     fig = go.Figure()
 
+    # Y축 범위 계산
+    y_min, y_max = y.min(), y.max()
+    y_range = y_max - y_min
+    y_plot_min = y_min - y_range * 0.1
+    y_plot_max = y_max + y_range * 0.1
+
+    # 배경: drift 구간을 bar graph로 표시
+    segment_boundaries = [0] + drift_points.tolist() + [len(X)]
+    colors = ['rgba(100, 150, 255, 0.15)', 'rgba(255, 150, 100, 0.15)', 'rgba(150, 255, 150, 0.15)',
+              'rgba(255, 200, 100, 0.15)', 'rgba(200, 150, 255, 0.15)', 'rgba(150, 255, 200, 0.15)']
+
+    for i in range(len(segment_boundaries) - 1):
+        start_idx = segment_boundaries[i]
+        end_idx = segment_boundaries[i + 1]
+
+        # 각 segment를 bar로 표시
+        fig.add_trace(go.Bar(
+            x=X[start_idx:end_idx],
+            y=[y_plot_max - y_plot_min] * (end_idx - start_idx),
+            base=y_plot_min,
+            marker=dict(
+                color=colors[i % len(colors)],
+                line=dict(width=0)
+            ),
+            name=f'Segment {i+1}',
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+
     # 메인 라인 그래프
     fig.add_trace(go.Scatter(
         x=X,
         y=y,
         mode='lines+markers',
         name='Data',
-        line=dict(color='rgb(100, 140, 200)', width=2),
-        marker=dict(size=4, color='rgb(100, 140, 200)'),
+        line=dict(color='rgb(50, 100, 180)', width=2),
+        marker=dict(size=4, color='rgb(50, 100, 180)'),
         hovertemplate='Time: %{x}<br>Value: %{y:.2f}<extra></extra>'
     ))
 
     # 드리프트 발생 지점 표시
-    y_min, y_max = y.min(), y.max()
-    y_range = y_max - y_min
-
     for i, drift_point in enumerate(drift_points):
         fig.add_vline(
             x=X[drift_point],
@@ -67,9 +93,12 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
         yaxis=dict(
             showgrid=True,
             gridwidth=1,
-            gridcolor='LightGray'
+            gridcolor='LightGray',
+            range=[y_plot_min, y_plot_max]
         ),
-        plot_bgcolor='white'
+        plot_bgcolor='white',
+        barmode='overlay',
+        bargap=0
     )
 
     return fig
@@ -88,10 +117,40 @@ def create_comparison_visualization(drift_data_dict: dict) -> go.Figure:
 
     positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
     drift_types = ["sudden", "gradual", "incremental", "recurring"]
+    colors = ['rgba(100, 150, 255, 0.15)', 'rgba(255, 150, 100, 0.15)', 'rgba(150, 255, 150, 0.15)',
+              'rgba(255, 200, 100, 0.15)', 'rgba(200, 150, 255, 0.15)', 'rgba(150, 255, 200, 0.15)']
 
     for (row, col), drift_type in zip(positions, drift_types):
         if drift_type in drift_data_dict:
             X, y, drift_points = drift_data_dict[drift_type]
+
+            # Y축 범위 계산
+            y_min, y_max = y.min(), y.max()
+            y_range = y_max - y_min
+            y_plot_min = y_min - y_range * 0.1
+            y_plot_max = y_max + y_range * 0.1
+
+            # 배경: drift 구간을 bar로 표시
+            segment_boundaries = [0] + drift_points.tolist() + [len(X)]
+
+            for i in range(len(segment_boundaries) - 1):
+                start_idx = segment_boundaries[i]
+                end_idx = segment_boundaries[i + 1]
+
+                fig.add_trace(
+                    go.Bar(
+                        x=X[start_idx:end_idx],
+                        y=[y_plot_max - y_plot_min] * (end_idx - start_idx),
+                        base=y_plot_min,
+                        marker=dict(
+                            color=colors[i % len(colors)],
+                            line=dict(width=0)
+                        ),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ),
+                    row=row, col=col
+                )
 
             # 라인 그래프 추가
             fig.add_trace(
@@ -99,7 +158,7 @@ def create_comparison_visualization(drift_data_dict: dict) -> go.Figure:
                     x=X,
                     y=y,
                     mode='lines',
-                    line=dict(color='rgb(100, 140, 200)', width=1),
+                    line=dict(color='rgb(50, 100, 180)', width=1.5),
                     showlegend=False
                 ),
                 row=row, col=col
@@ -122,7 +181,9 @@ def create_comparison_visualization(drift_data_dict: dict) -> go.Figure:
         height=800,
         title_text="Concept Drift Types Comparison",
         showlegend=False,
-        template='plotly_white'
+        template='plotly_white',
+        barmode='overlay',
+        bargap=0
     )
 
     return fig
