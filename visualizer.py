@@ -115,7 +115,7 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
 
     fig.add_trace(go.Bar(
         x=window_centers,
-        y=drift_detected,
+        y=[1 for d in drift_detected],
         marker=dict(color=bar_colors, line=dict(width=0)),
         name='Drift Detected',
         showlegend=False,
