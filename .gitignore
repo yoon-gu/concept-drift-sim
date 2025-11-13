@@ -15,3 +15,5 @@ build/
 .vscode/
 *.log
 flagged/
+*.html
+test_*.py

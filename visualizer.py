@@ -7,42 +7,60 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
 
     fig = go.Figure()
 
-    # 메인 데이터 scatter plot
-    fig.add_trace(go.Scatter(
-        x=X,
-        y=y,
-        mode='markers',
-        name='Data Points',
-        marker=dict(
-            size=6,
-            color=np.arange(len(X)),
-            colorscale='Viridis',
-            showscale=True,
-            colorbar=dict(title="Time Step"),
-            line=dict(width=0.5, color='white')
-        ),
-        hovertemplate='X: %{x:.2f}<br>y: %{y:.2f}<br>Index: %{marker.color}<extra></extra>'
-    ))
+    # incremental drift는 연속 값으로 처리
+    if drift_type == "incremental":
+        # 0-1 사이 값을 색상으로 매핑
+        colors = []
+        for val in y:
+            # 파란색(0)에서 초록색(1)로 점진적 변화
+            blue = int(255 * (1 - val))
+            green = int(255 * val)
+            colors.append(f'rgb({blue}, {green}, 150)')
 
-    # 드리프트 발생 지점 표시
-    y_min, y_max = y.min(), y.max()
-    y_range = y_max - y_min
+        fig.add_trace(go.Bar(
+            x=X,
+            y=np.ones(len(X)),
+            marker=dict(
+                color=colors,
+                line=dict(width=0)
+            ),
+            showlegend=False,
+            hovertemplate='Time: %{x}<br>Value: %{customdata:.2f}<extra></extra>',
+            customdata=y
+        ))
+    else:
+        # 이진 분류 (0: 파란색, 1: 초록색)
+        class_0_indices = np.where(y == 0)[0]
+        class_1_indices = np.where(y == 1)[0]
 
-    for i, drift_point in enumerate(drift_points):
-        fig.add_vline(
-            x=X[drift_point],
-            line_dash="dash",
-            line_color="red",
-            annotation_text=f"Drift {i+1}",
-            annotation_position="top"
-        )
+        # Class 0 (파란색)
+        if len(class_0_indices) > 0:
+            fig.add_trace(go.Bar(
+                x=X[class_0_indices],
+                y=np.ones(len(class_0_indices)),
+                marker=dict(color='rgb(70, 130, 180)', line=dict(width=0)),
+                name='Class 0',
+                showlegend=True,
+                hovertemplate='Time: %{x}<br>Class: 0<extra></extra>'
+            ))
+
+        # Class 1 (초록색)
+        if len(class_1_indices) > 0:
+            fig.add_trace(go.Bar(
+                x=X[class_1_indices],
+                y=np.ones(len(class_1_indices)),
+                marker=dict(color='rgb(60, 179, 113)', line=dict(width=0)),
+                name='Class 1',
+                showlegend=True,
+                hovertemplate='Time: %{x}<br>Class: 1<extra></extra>'
+            ))
 
     # 레이아웃 설정
     title_map = {
-        "sudden": "Sudden (Abrupt) Drift - 급격한 드리프트",
-        "gradual": "Gradual Drift - 점진적 드리프트",
-        "incremental": "Incremental Drift - 증분적 드리프트",
-        "recurring": "Recurring Drift - 반복적 드리프트"
+        "sudden": "Sudden Drift",
+        "gradual": "Gradual Drift",
+        "incremental": "Incremental Drift",
+        "recurring": "Reoccurring Concepts"
     }
 
     fig.update_layout(
@@ -50,31 +68,31 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
             text=title_map.get(drift_type, "Concept Drift"),
             x=0.5,
             xanchor='center',
-            font=dict(size=20)
+            font=dict(size=20, weight='bold')
         ),
-        xaxis_title="Feature (X)",
-        yaxis_title="Target (y)",
+        xaxis_title="Time",
+        yaxis_title="Data distribution",
         hovermode='closest',
         template='plotly_white',
-        height=600,
-        showlegend=True,
+        height=400,
+        showlegend=(drift_type != "incremental"),
         legend=dict(
             yanchor="top",
             y=0.99,
-            xanchor="left",
-            x=0.01
+            xanchor="right",
+            x=0.99
         ),
         xaxis=dict(
-            showgrid=True,
-            gridwidth=1,
-            gridcolor='LightGray'
+            showgrid=False,
+            showticklabels=False
         ),
         yaxis=dict(
-            showgrid=True,
-            gridwidth=1,
-            gridcolor='LightGray'
+            showgrid=False,
+            showticklabels=False,
+            range=[0, 1.2]
         ),
-        plot_bgcolor='white'
+        plot_bgcolor='white',
+        bargap=0
     )
 
     return fig
@@ -86,7 +104,9 @@ def create_comparison_visualization(drift_data_dict: dict) -> go.Figure:
 
     fig = make_subplots(
         rows=2, cols=2,
-        subplot_titles=("Sudden Drift", "Gradual Drift", "Incremental Drift", "Recurring Drift")
+        subplot_titles=("Sudden Drift", "Gradual Drift", "Incremental Drift", "Reoccurring Concepts"),
+        vertical_spacing=0.15,
+        horizontal_spacing=0.1
     )
 
     positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
@@ -96,28 +116,59 @@ def create_comparison_visualization(drift_data_dict: dict) -> go.Figure:
         if drift_type in drift_data_dict:
             X, y, drift_points = drift_data_dict[drift_type]
 
-            fig.add_trace(
-                go.Scatter(
-                    x=X,
-                    y=y,
-                    mode='markers',
-                    marker=dict(size=3, color=np.arange(len(X)), colorscale='Viridis'),
-                    showlegend=False
-                ),
-                row=row, col=col
-            )
+            if drift_type == "incremental":
+                # Incremental drift: 연속 색상 변화
+                colors = []
+                for val in y:
+                    blue = int(255 * (1 - val))
+                    green = int(255 * val)
+                    colors.append(f'rgb({blue}, {green}, 150)')
 
-            # 드리프트 지점 표시
-            for drift_point in drift_points:
-                fig.add_vline(
-                    x=X[drift_point],
-                    line_dash="dash",
-                    line_color="red",
+                fig.add_trace(
+                    go.Bar(
+                        x=X,
+                        y=np.ones(len(X)),
+                        marker=dict(color=colors, line=dict(width=0)),
+                        showlegend=False
+                    ),
                     row=row, col=col
                 )
+            else:
+                # 이진 분류
+                class_0_indices = np.where(y == 0)[0]
+                class_1_indices = np.where(y == 1)[0]
 
-    fig.update_xaxes(title_text="X")
-    fig.update_yaxes(title_text="y")
-    fig.update_layout(height=800, title_text="Concept Drift Types Comparison", showlegend=False)
+                if len(class_0_indices) > 0:
+                    fig.add_trace(
+                        go.Bar(
+                            x=X[class_0_indices],
+                            y=np.ones(len(class_0_indices)),
+                            marker=dict(color='rgb(70, 130, 180)', line=dict(width=0)),
+                            showlegend=False
+                        ),
+                        row=row, col=col
+                    )
+
+                if len(class_1_indices) > 0:
+                    fig.add_trace(
+                        go.Bar(
+                            x=X[class_1_indices],
+                            y=np.ones(len(class_1_indices)),
+                            marker=dict(color='rgb(60, 179, 113)', line=dict(width=0)),
+                            showlegend=False
+                        ),
+                        row=row, col=col
+                    )
+
+    # 레이아웃 설정
+    fig.update_xaxes(title_text="Time", showgrid=False, showticklabels=False)
+    fig.update_yaxes(title_text="Data distribution", showgrid=False, showticklabels=False, range=[0, 1.2])
+    fig.update_layout(
+        height=800,
+        title_text="Concept Drift Types Comparison",
+        showlegend=False,
+        bargap=0,
+        template='plotly_white'
+    )
 
     return fig

@@ -3,14 +3,14 @@ from typing import Tuple
 
 def generate_sudden_drift(n_samples: int = 1000, drift_point: int = 500) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """급격한 드리프트: t 시점에서 갑자기 데이터 분포 변경"""
-    X = np.linspace(0, 10, n_samples)
-    y = np.zeros(n_samples)
+    X = np.arange(n_samples)  # 시간 인덱스
+    y = np.zeros(n_samples, dtype=int)
 
-    # Before drift: y = 2*X + noise
-    y[:drift_point] = 2 * X[:drift_point] + np.random.normal(0, 1, drift_point)
+    # Before drift: class 0 (파란색)
+    y[:drift_point] = 0
 
-    # After drift: y = -X + 5 + noise (완전히 다른 관계)
-    y[drift_point:] = -X[drift_point:] + 5 + np.random.normal(0, 1, n_samples - drift_point)
+    # After drift: class 1 (초록색)
+    y[drift_point:] = 1
 
     drift_points = np.array([drift_point])
     return X, y, drift_points
@@ -18,44 +18,41 @@ def generate_sudden_drift(n_samples: int = 1000, drift_point: int = 500) -> Tupl
 
 def generate_gradual_drift(n_samples: int = 1000, drift_start: int = 300, drift_end: int = 700) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """점진적 드리프트: 두 분포가 섞이며 천천히 전환"""
-    X = np.linspace(0, 10, n_samples)
-    y = np.zeros(n_samples)
+    X = np.arange(n_samples)  # 시간 인덱스
+    y = np.zeros(n_samples, dtype=int)
 
-    # Before drift: y = 2*X
-    y[:drift_start] = 2 * X[:drift_start] + np.random.normal(0, 1, drift_start)
+    # Before drift: class 0 (파란색)
+    y[:drift_start] = 0
 
-    # Gradual transition: mixture of old and new concepts
+    # Gradual transition: class 0과 class 1이 섞임
     transition_length = drift_end - drift_start
     for i in range(drift_start, drift_end):
+        # 점진적으로 class 1의 비율 증가
         weight = (i - drift_start) / transition_length
-        old_concept = 2 * X[i] + np.random.normal(0, 1)
-        new_concept = -X[i] + 5 + np.random.normal(0, 1)
-        y[i] = (1 - weight) * old_concept + weight * new_concept
+        y[i] = 1 if np.random.random() < weight else 0
 
-    # After drift: y = -X + 5
-    y[drift_end:] = -X[drift_end:] + 5 + np.random.normal(0, 1, n_samples - drift_end)
+    # After drift: class 1 (초록색)
+    y[drift_end:] = 1
 
     drift_points = np.array([drift_start, drift_end])
     return X, y, drift_points
 
 
-def generate_incremental_drift(n_samples: int = 1000, n_steps: int = 5) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def generate_incremental_drift(n_samples: int = 1000, n_steps: int = 10) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """증분적 드리프트: 계단식으로 작은 변화가 누적"""
-    X = np.linspace(0, 10, n_samples)
-    y = np.zeros(n_samples)
+    X = np.arange(n_samples)  # 시간 인덱스
+    y = np.zeros(n_samples)  # 연속 값 (시각화를 위해)
 
-    step_size = n_samples // (n_steps + 1)
+    step_size = n_samples // n_steps
     drift_points = []
 
-    for step in range(n_steps + 1):
+    for step in range(n_steps):
         start_idx = step * step_size
-        end_idx = (step + 1) * step_size if step < n_steps else n_samples
+        end_idx = (step + 1) * step_size if step < n_steps - 1 else n_samples
 
-        # 각 단계마다 기울기가 조금씩 변화
-        slope = 2 - (step / n_steps) * 3  # 2에서 -1로 점진적 변화
-        intercept = (step / n_steps) * 5  # 0에서 5로 점진적 변화
-
-        y[start_idx:end_idx] = slope * X[start_idx:end_idx] + intercept + np.random.normal(0, 1, end_idx - start_idx)
+        # 각 단계마다 0에서 1로 점진적 변화
+        value = step / (n_steps - 1)
+        y[start_idx:end_idx] = value
 
         if step > 0:
             drift_points.append(start_idx)
@@ -65,8 +62,8 @@ def generate_incremental_drift(n_samples: int = 1000, n_steps: int = 5) -> Tuple
 
 def generate_recurring_drift(n_samples: int = 1000, cycle_length: int = 250) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """반복적 드리프트: 이전 분포가 주기적으로 재등장"""
-    X = np.linspace(0, 10, n_samples)
-    y = np.zeros(n_samples)
+    X = np.arange(n_samples)  # 시간 인덱스
+    y = np.zeros(n_samples, dtype=int)
 
     drift_points = []
 
@@ -74,11 +71,11 @@ def generate_recurring_drift(n_samples: int = 1000, cycle_length: int = 250) -> 
         cycle_pos = i % cycle_length
 
         if cycle_pos < cycle_length // 2:
-            # Concept A: y = 2*X
-            y[i] = 2 * X[i] + np.random.normal(0, 1)
+            # Concept A: class 0 (파란색)
+            y[i] = 0
         else:
-            # Concept B: y = -X + 5
-            y[i] = -X[i] + 5 + np.random.normal(0, 1)
+            # Concept B: class 1 (초록색)
+            y[i] = 1
 
         if cycle_pos == cycle_length // 2:
             drift_points.append(i)
