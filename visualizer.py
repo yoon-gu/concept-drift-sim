@@ -9,19 +9,24 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
 
     # incremental drift는 연속 값으로 처리
     if drift_type == "incremental":
-        # 0-1 사이 값을 색상으로 매핑
+        # 색상 리스트 생성
         colors = []
         for val in y:
             # 파란색(0)에서 초록색(1)로 점진적 변화
-            blue = int(255 * (1 - val))
-            green = int(255 * val)
-            colors.append(f'rgb({blue}, {green}, 150)')
+            r = int(50 + 50 * val)
+            g = int(100 + 79 * val)
+            b = int(200 - 87 * val)
+            colors.append(f'rgb({r}, {g}, {b})')
 
-        fig.add_trace(go.Bar(
+        # Scatter로 표현 (색상 영역)
+        fig.add_trace(go.Scatter(
             x=X,
             y=np.ones(len(X)),
+            mode='markers',
             marker=dict(
                 color=colors,
+                size=10,
+                symbol='square',
                 line=dict(width=0)
             ),
             showlegend=False,
@@ -30,26 +35,27 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
         ))
     else:
         # 이진 분류 (0: 파란색, 1: 초록색)
-        class_0_indices = np.where(y == 0)[0]
-        class_1_indices = np.where(y == 1)[0]
-
         # Class 0 (파란색)
-        if len(class_0_indices) > 0:
-            fig.add_trace(go.Bar(
-                x=X[class_0_indices],
-                y=np.ones(len(class_0_indices)),
-                marker=dict(color='rgb(70, 130, 180)', line=dict(width=0)),
+        class_0_mask = y == 0
+        if np.any(class_0_mask):
+            fig.add_trace(go.Scatter(
+                x=X[class_0_mask],
+                y=np.ones(np.sum(class_0_mask)),
+                mode='markers',
+                marker=dict(color='rgb(65, 105, 225)', size=10, symbol='square', line=dict(width=0)),
                 name='Class 0',
                 showlegend=True,
                 hovertemplate='Time: %{x}<br>Class: 0<extra></extra>'
             ))
 
         # Class 1 (초록색)
-        if len(class_1_indices) > 0:
-            fig.add_trace(go.Bar(
-                x=X[class_1_indices],
-                y=np.ones(len(class_1_indices)),
-                marker=dict(color='rgb(60, 179, 113)', line=dict(width=0)),
+        class_1_mask = y == 1
+        if np.any(class_1_mask):
+            fig.add_trace(go.Scatter(
+                x=X[class_1_mask],
+                y=np.ones(np.sum(class_1_mask)),
+                mode='markers',
+                marker=dict(color='rgb(50, 205, 50)', size=10, symbol='square', line=dict(width=0)),
                 name='Class 1',
                 showlegend=True,
                 hovertemplate='Time: %{x}<br>Class: 1<extra></extra>'
@@ -68,7 +74,7 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
             text=title_map.get(drift_type, "Concept Drift"),
             x=0.5,
             xanchor='center',
-            font=dict(size=20, weight='bold')
+            font=dict(size=20)
         ),
         xaxis_title="Time",
         yaxis_title="Data distribution",
@@ -84,15 +90,14 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
         ),
         xaxis=dict(
             showgrid=False,
-            showticklabels=False
+            showticklabels=True
         ),
         yaxis=dict(
             showgrid=False,
             showticklabels=False,
-            range=[0, 1.2]
+            range=[0.5, 1.5]
         ),
-        plot_bgcolor='white',
-        bargap=0
+        plot_bgcolor='white'
     )
 
     return fig
@@ -120,41 +125,45 @@ def create_comparison_visualization(drift_data_dict: dict) -> go.Figure:
                 # Incremental drift: 연속 색상 변화
                 colors = []
                 for val in y:
-                    blue = int(255 * (1 - val))
-                    green = int(255 * val)
-                    colors.append(f'rgb({blue}, {green}, 150)')
+                    r = int(50 + 50 * val)
+                    g = int(100 + 79 * val)
+                    b = int(200 - 87 * val)
+                    colors.append(f'rgb({r}, {g}, {b})')
 
                 fig.add_trace(
-                    go.Bar(
+                    go.Scatter(
                         x=X,
                         y=np.ones(len(X)),
-                        marker=dict(color=colors, line=dict(width=0)),
+                        mode='markers',
+                        marker=dict(color=colors, size=5, symbol='square', line=dict(width=0)),
                         showlegend=False
                     ),
                     row=row, col=col
                 )
             else:
                 # 이진 분류
-                class_0_indices = np.where(y == 0)[0]
-                class_1_indices = np.where(y == 1)[0]
+                class_0_mask = y == 0
+                class_1_mask = y == 1
 
-                if len(class_0_indices) > 0:
+                if np.any(class_0_mask):
                     fig.add_trace(
-                        go.Bar(
-                            x=X[class_0_indices],
-                            y=np.ones(len(class_0_indices)),
-                            marker=dict(color='rgb(70, 130, 180)', line=dict(width=0)),
+                        go.Scatter(
+                            x=X[class_0_mask],
+                            y=np.ones(np.sum(class_0_mask)),
+                            mode='markers',
+                            marker=dict(color='rgb(65, 105, 225)', size=5, symbol='square', line=dict(width=0)),
                             showlegend=False
                         ),
                         row=row, col=col
                     )
 
-                if len(class_1_indices) > 0:
+                if np.any(class_1_mask):
                     fig.add_trace(
-                        go.Bar(
-                            x=X[class_1_indices],
-                            y=np.ones(len(class_1_indices)),
-                            marker=dict(color='rgb(60, 179, 113)', line=dict(width=0)),
+                        go.Scatter(
+                            x=X[class_1_mask],
+                            y=np.ones(np.sum(class_1_mask)),
+                            mode='markers',
+                            marker=dict(color='rgb(50, 205, 50)', size=5, symbol='square', line=dict(width=0)),
                             showlegend=False
                         ),
                         row=row, col=col
@@ -162,12 +171,11 @@ def create_comparison_visualization(drift_data_dict: dict) -> go.Figure:
 
     # 레이아웃 설정
     fig.update_xaxes(title_text="Time", showgrid=False, showticklabels=False)
-    fig.update_yaxes(title_text="Data distribution", showgrid=False, showticklabels=False, range=[0, 1.2])
+    fig.update_yaxes(title_text="Data distribution", showgrid=False, showticklabels=False, range=[0.5, 1.5])
     fig.update_layout(
         height=800,
         title_text="Concept Drift Types Comparison",
         showlegend=False,
-        bargap=0,
         template='plotly_white'
     )
 
