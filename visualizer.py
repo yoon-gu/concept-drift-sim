@@ -14,13 +14,14 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
         mode='markers',
         name='Data Points',
         marker=dict(
-            size=4,
+            size=6,
             color=np.arange(len(X)),
             colorscale='Viridis',
             showscale=True,
-            colorbar=dict(title="Time")
+            colorbar=dict(title="Time Step"),
+            line=dict(width=0.5, color='white')
         ),
-        hovertemplate='X: %{x:.2f}<br>y: %{y:.2f}<extra></extra>'
+        hovertemplate='X: %{x:.2f}<br>y: %{y:.2f}<br>Index: %{marker.color}<extra></extra>'
     ))
 
     # 드리프트 발생 지점 표시
@@ -48,7 +49,8 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
         title=dict(
             text=title_map.get(drift_type, "Concept Drift"),
             x=0.5,
-            xanchor='center'
+            xanchor='center',
+            font=dict(size=20)
         ),
         xaxis_title="Feature (X)",
         yaxis_title="Target (y)",
@@ -61,7 +63,18 @@ def create_drift_visualization(X: np.ndarray, y: np.ndarray, drift_points: np.nd
             y=0.99,
             xanchor="left",
             x=0.01
-        )
+        ),
+        xaxis=dict(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='LightGray'
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='LightGray'
+        ),
+        plot_bgcolor='white'
     )
 
     return fig
